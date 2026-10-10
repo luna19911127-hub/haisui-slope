@@ -1,0 +1,13 @@
+{
+  "name": "排水勾配計算",
+  "short_name": "排水勾配",
+  "description": "排水設備の勾配・落差を計算する現場用Webアプリ",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f6f5",
+  "theme_color": "#155e50",
+  "icons": [
+    {"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}

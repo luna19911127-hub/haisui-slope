@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#155e50">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="排水勾配">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon.svg">
+<title>排水勾配計算</title>
+<style>
+:root{color-scheme:light;--green:#155e50;--green2:#d9f0e7;--bg:#f3f6f5;--card:#fff;--text:#172421;--muted:#66736f;--line:#dce5e1;--red:#b42318}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+main{max-width:560px;margin:auto;padding:14px 14px 32px}.hero{background:var(--green);color:white;border-radius:20px;padding:20px;margin-bottom:14px}.hero h1{font-size:23px;margin:0 0 6px}.hero p{margin:0;color:#d2eee6;font-size:13px}.hero .mark{font-size:30px;float:right}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:12px 0}.tab{border:0;border-radius:12px;padding:13px 5px;background:#e6ece9;color:#33443e;font-size:14px;font-weight:700}.tab.active{background:var(--green);color:white}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px}.card h2{font-size:18px;margin:0 0 14px}.field{margin:12px 0}.field label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}.field input,.field select{width:100%;font-size:18px;padding:13px 12px;border:1px solid #cbd7d1;border-radius:11px;background:white;color:var(--text);min-height:48px}.hint{font-size:12px;color:var(--muted);line-height:1.5}.quick{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.quick button{border:1px solid #cbd7d1;border-radius:10px;background:white;padding:12px 4px;font-size:15px;font-weight:700}.quick button.chosen{background:var(--green2);border-color:var(--green);color:var(--green)}
+.result{background:#edf5f1;border-radius:15px;padding:16px;margin-top:14px}.result .eyebrow{font-size:12px;color:var(--muted)}.big{font-size:32px;font-weight:800;color:var(--green);margin:4px 0 12px;overflow-wrap:anywhere}.metrics{display:grid;grid-template-columns:1fr 1fr;gap:12px}.metric{border-top:1px solid #d2e2da;padding-top:10px}.metric span{display:block;font-size:12px;color:var(--muted)}.metric strong{display:block;font-size:19px;margin-top:4px}
+.btn{width:100%;border:0;border-radius:12px;background:var(--green);color:white;font-size:16px;font-weight:700;padding:14px;margin-top:10px;min-height:48px}.btn.secondary{background:white;color:var(--green);border:1px solid var(--green)}.notice{font-size:12px;color:var(--muted);line-height:1.6;margin:12px 2px}.warning{color:var(--red);font-weight:700}.rows{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}.rows:last-child{border-bottom:0}.record{background:#f7faf8;border:1px solid var(--line);padding:11px;border-radius:10px;margin-top:8px;font-size:13px}.record strong{display:block;margin-bottom:4px}.smallbtn{border:1px solid var(--line);border-radius:8px;background:white;padding:7px 10px;color:var(--green)}
+footer{text-align:center;font-size:11px;color:var(--muted);padding:10px}
+@media(min-width:520px){main{padding-top:22px}.hero{padding:24px}}
+</style>
+</head>
+<body>
+<main>
+<header class="hero"><span class="mark">〽️</span><h1>排水勾配計算</h1><p>現場用｜排水設備・配管施工・点検</p></header>
+<nav class="tabs" aria-label="計算モード">
+<button class="tab active" data-tab="drop">落差計算</button><button class="tab" data-tab="check">実測判定</button><button class="tab" data-tab="segment">分割計算</button>
+</nav>
+<section class="card">
+<div id="dropMode">
+<h2>必要な落差を計算</h2>
+<div class="field"><label for="length">管の長さ（m）</label><input id="length" type="number" inputmode="decimal" min="0" step="any" value="10"></div>
+<div class="field"><label>目標勾配（1/N）</label><div class="quick" id="quick"></div></div>
+<div class="field"><label for="denom">カスタム分母 N</label><input id="denom" type="number" inputmode="decimal" min="0.0001" step="any" value="100"></div>
+<div id="dropResult" class="result"></div>
+<button class="btn" id="copyDrop">計算結果をコピー</button>
+</div>
+<div id="checkMode" hidden>
+<h2>現場の実測勾配を判定</h2>
+<div class="field"><label for="length2">水平距離（m）</label><input id="length2" type="number" inputmode="decimal" min="0" step="any" value="10"></div>
+<div class="field"><label for="start">起点標高（mm）</label><input id="start" type="number" inputmode="decimal" step="any" value="1000"></div>
+<div class="field"><label for="end">終点標高（mm）</label><input id="end" type="number" inputmode="decimal" step="any" value="900"></div>
+<div class="field"><label for="goal">目標勾配</label><select id="goal"><option value="50">1/50</option><option value="75">1/75</option><option value="100" selected>1/100</option><option value="150">1/150</option><option value="200">1/200</option></select></div>
+<div id="checkResult" class="result"></div>
+<button class="btn" id="copyCheck">点検記録をコピー</button>
+</div>
+<div id="segmentMode" hidden>
+<h2>長い管を分けて計算</h2>
+<div class="field"><label for="length3">管の全長（m）</label><input id="length3" type="number" inputmode="decimal" min="0" step="any" value="12"></div>
+<div class="field"><label for="denom3">勾配（1/N）</label><select id="denom3"><option value="50">1/50</option><option value="75">1/75</option><option value="100" selected>1/100</option><option value="150">1/150</option><option value="200">1/200</option></select></div>
+<div class="field"><label for="segments">分割数（1〜20）</label><input id="segments" type="number" inputmode="numeric" min="1" max="20" step="1" value="4"></div>
+<div id="segmentResult" class="result"></div>
+<button class="btn" id="copySegment">分割結果をコピー</button>
+</div>
+</section>
+<section class="card">
+<h2>作業メモ・計算履歴</h2>
+<div class="field"><label for="memo">現場名・系統・メモ（任意）</label><input id="memo" placeholder="例：B1F 汚水系統"></div>
+<button class="btn secondary" id="saveRecord">現在の計算を履歴に保存</button>
+<div id="records"></div>
+<button class="btn secondary" id="clearRecords">履歴をすべて削除</button>
+</section>
+<p class="notice">※計算値は理論値です。適用する勾配は設計図書・管種・管径・用途・現場条件および適用規定を確認してください。実測判定は目標落差との数値比較であり、法令・施工基準への適合を保証するものではありません。</p>
+<footer>排水勾配計算｜入力・履歴はこの端末のブラウザー内に保存</footer>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const fmt=(n,d=2)=>Number(n).toLocaleString('ja-JP',{maximumFractionDigits:d,minimumFractionDigits:0});
+const validPositive=v=>v!==''&&Number.isFinite(Number(v))&&Number(v)>0;
+const denoms=[50,75,100,150,200,250];
+let activeTab='drop';
+function buildQuick(){ $('quick').innerHTML=denoms.map(n=>`<button type="button" data-n="${n}" class="${$('denom').value==n?'chosen':''}">1/${n}</button>`).join('');$('quick').querySelectorAll('button').forEach(b=>b.onclick=()=>{$('denom').value=b.dataset.n;buildQuick();renderDrop()})}
+function dropData(){let l=Number($('length').value),n=Number($('denom').value);if(!validPositive($('length').value)||!validPositive($('denom').value))return null;let total=l*1000/n;return {l,n,total,percent:100/n,perm:1000/n}}
+function renderDrop(){let x=dropData();if(!x){$('dropResult').innerHTML='<span class="warning">管長と分母は0より大きい数値を入力してください。</span>';return}
+$('dropResult').innerHTML=`<div class="eyebrow">必要な落差 / 理論値</div><div class="big">${fmt(x.total)} mm</div><div class="metrics"><div class="metric"><span>センチ換算</span><strong>${fmt(x.total/10)} cm</strong></div><div class="metric"><span>1mあたり</span><strong>${fmt(x.perm)} mm/m</strong></div><div class="metric"><span>勾配（％）</span><strong>${fmt(x.percent,4)}%</strong></div><div class="metric"><span>勾配（‰）</span><strong>${fmt(x.percent*10,3)}‰</strong></div></div>`}
+function checkData(){let l=Number($('length2').value),s=Number($('start').value),e=Number($('end').value),n=Number($('goal').value);if(!validPositive($('length2').value)||$('start').value===''||$('end').value===''||!Number.isFinite(s)||!Number.isFinite(e))return null;let drop=s-e,target=l*1000/n,pct=drop/(l*1000)*100;return {l,s,e,n,drop,target,pct,diff:Math.abs(drop)-target,ratio:drop!==0?l*1000/Math.abs(drop):null}}
+function renderCheck(){let x=checkData();if(!x){$('checkResult').innerHTML='<span class="warning">距離は0より大きい数値、標高は数値で入力してください。</span>';return}
+let direction=x.drop>0?'下り勾配':x.drop<0?'上り勾配':'水平';let judgement=x.drop<=0?'<div class="notice warning">起点から終点へ下りになっていません。測定値と排水方向を確認してください。</div>':x.drop>=x.target?'<div class="notice">目標落差以上です。設計上許容される勾配範囲も確認してください。</div>':'<div class="notice warning">実測落差が目標値より小さいです。設計条件を確認してください。</div>';
+$('checkResult').innerHTML=`<div class="eyebrow">実測勾配</div><div class="big">${fmt(Math.abs(x.pct),4)}%</div><strong>${direction}</strong><div class="rows"><span>実測落差</span><strong>${fmt(x.drop)} mm</strong></div><div class="rows"><span>目標落差（1/${x.n}）</span><strong>${fmt(x.target)} mm</strong></div><div class="rows"><span>落差の差（実測絶対値−目標）</span><strong>${fmt(Math.abs(x.drop)-x.target)} mm</strong></div>${judgement}`}
+function segmentData(){let l=Number($('length3').value),n=Number($('denom3').value),c=Number($('segments').value);if(!validPositive($('length3').value)||!validPositive($('denom3').value)||!Number.isInteger(c)||c<1||c>20)return null;return {l,n,c,segL:l/c,segDrop:l*1000/n/c,total:l*1000/n}}
+function renderSegment(){let x=segmentData();if(!x){$('segmentResult').innerHTML='<span class="warning">全長・分母を正しく入力し、分割数は1〜20にしてください。</span>';return}
+let rows=Array.from({length:x.c},(_,i)=>`<div class="rows"><span>第${i+1}区間<br><small>${fmt(x.segL,3)} m</small></span><strong>${fmt(x.segDrop)} mm<br><small>累計 ${fmt(x.segDrop*(i+1))} mm</small></strong></div>`).join('');
+$('segmentResult').innerHTML=`<div class="eyebrow">全体の理論落差</div><div class="big">${fmt(x.total)} mm</div><div class="rows"><span>1区間の長さ</span><strong>${fmt(x.segL,3)} m</strong></div><div class="rows"><span>1区間の落差</span><strong>${fmt(x.segDrop)} mm</strong></div>${rows}`}
+function currentSummary(){if(activeTab==='drop'){let x=dropData();return x?`管長 ${x.l}m / 勾配 1/${x.n} / 必要落差 ${fmt(x.total)}mm / ${fmt(x.percent,4)}%`:null}if(activeTab==='check'){let x=checkData();return x?`距離 ${x.l}m / 起点 ${x.s}mm / 終点 ${x.e}mm / 実測落差 ${fmt(x.drop)}mm / 勾配 ${fmt(x.pct,4)}% / 目標 1/${x.n}`:null}let x=segmentData();return x?`全長 ${x.l}m / 勾配 1/${x.n} / 全体落差 ${fmt(x.total)}mm / ${x.c}分割`:null}
+function copyText(t){if(!t){alert('入力値を確認してください。');return}if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t).then(()=>alert('コピーしました')).catch(()=>fallbackCopy(t))}else fallbackCopy(t)}
+function fallbackCopy(t){let a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');alert('コピーしました')}catch(e){alert(t)}a.remove()}
+function setTab(tab){activeTab=tab;document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));$('dropMode').hidden=tab!=='drop';$('checkMode').hidden=tab!=='check';$('segmentMode').hidden=tab!=='segment'}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+$('denom').addEventListener('input',()=>{buildQuick();renderDrop()});
+['length'].forEach(id=>$(id).addEventListener('input',renderDrop));
+['length2','start','end','goal'].forEach(id=>$(id).addEventListener('input',renderCheck));
+['length3','denom3','segments'].forEach(id=>$(id).addEventListener('input',renderSegment));
+$('copyDrop').onclick=()=>{let x=dropData();copyText(x?`排水勾配計算\n管長：${x.l}m\n勾配：1/${x.n}\n必要落差：${fmt(x.total)}mm\n1mあたり：${fmt(x.perm)}mm/m\n勾配：${fmt(x.percent,4)}%（${fmt(x.percent*10,3)}‰）`:null)};
+$('copyCheck').onclick=()=>{let x=checkData();copyText(x?`排水設備 実測記録\n距離：${x.l}m\n起点標高：${x.s}mm\n終点標高：${x.e}mm\n実測落差：${fmt(x.drop)}mm\n実測勾配：${fmt(x.pct,4)}%\n目標勾配：1/${x.n}\n目標落差：${fmt(x.target)}mm\n差：${fmt(Math.abs(x.drop)-x.target)}mm`:null)};
+$('copySegment').onclick=()=>{let x=segmentData();copyText(x?`排水管分割計算\n全長：${x.l}m\n勾配：1/${x.n}\n全体落差：${fmt(x.total)}mm\n${Array.from({length:x.c},(_,i)=>`第${i+1}区間：${fmt(x.segL,3)}m / 落差${fmt(x.segDrop)}mm / 累計${fmt(x.segDrop*(i+1))}mm`).join('\n')}`:null)};
+function loadRecords(){try{return JSON.parse(localStorage.getItem('haisuiRecords')||'[]')}catch(e){return []}}
+function showRecords(){let arr=loadRecords();$('records').innerHTML=arr.length?arr.map((r,i)=>`<div class="record"><strong>${escapeHtml(r.memo||'現場記録')} · ${escapeHtml(r.time)}</strong><div>${escapeHtml(r.summary)}</div><button class="smallbtn" data-copy="${i}" style="margin-top:8px">コピー</button> <button class="smallbtn" data-del="${i}" style="margin-top:8px">削除</button></div>`).join(''):'<p class="hint">保存した履歴はここに表示されます（この端末内のみ）。</p>';
+$('records').querySelectorAll('[data-copy]').forEach(b=>b.onclick=()=>copyText(arr[Number(b.dataset.copy)].summary));$('records').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{arr.splice(Number(b.dataset.del),1);localStorage.setItem('haisuiRecords',JSON.stringify(arr));showRecords()})}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+$('saveRecord').onclick=()=>{let summary=currentSummary();if(!summary){alert('先に数値を入力してください。');return}let arr=loadRecords();arr.unshift({memo:$('memo').value.trim(),summary,time:new Date().toLocaleString('ja-JP')});localStorage.setItem('haisuiRecords',JSON.stringify(arr.slice(0,30)));showRecords();alert('履歴に保存しました')};
+$('clearRecords').onclick=()=>{if(confirm('保存した履歴をすべて削除しますか？')){localStorage.removeItem('haisuiRecords');showRecords()}};
+buildQuick();renderDrop();renderCheck();renderSegment();showRecords();
+if('serviceWorker' in navigator && location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+</script>
+</body>
+</html>
